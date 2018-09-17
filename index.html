@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Guide | CARTO</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <!-- Include Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+    <link href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css" rel="stylesheet">
+    <!-- Include CARTO.js -->
+    <script src="https://cartodb-libs.global.ssl.fastly.net/carto.js/v4.1.5/carto.min.js"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" type="text/css">
+    <style>
+      * { margin:0; padding:0; }
+      html { box-sizing:border-box; height:100%; }
+      body { background:#f2f6f9; height:100%; font-family:"Open sans", Helvetica, Arial, sans-serif; }
+      #container { display:flex; width:100%; height:100%; }
+      #map { flex:1; margin:10px; }
+      #widgets { width:300px; margin:10px 10px 10px 0; }
+      .widget { background:white; padding:10px; margin-bottom:10px; }
+      .widget h1 { font-size:1.2em; }
+      .widget-formula .result { font-size:2em; }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="map"></div>
+    </div>
+    <script>
+    const map = L.map('map').setView([40.85,-73],9.5);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png', {maxZoom: 18,zIndex: 10}).addTo(map);
+
+    var client = new carto.Client({apiKey: '3e12024aff2f3326a1db97e6c877e79e02bd8ced',username: 'latinos',serverUrl: 'http://app2.gss.stonybrook.edu/user/latinos'});
+
+/*
+#layer { polygon-fill: #810f7c;
+         polygon-opacity: 1;
+         line-width: 0.5;
+         line-color: #b9b1b1;
+         line-opacity: 0.5;
+       }
+
+#layer[ pct_hispanic <= 80] { polygon-fill: #8856a7; }
+#layer[ pct_hispanic <= 40] { polygon-fill: #8c96c6; }
+#layer [ pct_hispanic <= 20] { polygon-fill: #9ebcda; }
+#layer [ pct_hispanic <= 10] { polygon-fill: #bfd3e6; }
+#layer [ pct_hispanic <= 5] { polygon-fill: #edf8fb; }';
+
+ */
+
+  const Pop1960 = new carto.source.SQL(`
+    SELECT '1960' as year, latinos.tract_1960.cartodb_id, latinos.tract_1960.gisjoin, latinos.tract_1960.the_geom, latinos.tract_1960.the_geom_webmercator,
+    ca4001 as total_pop, ca7001 as hispanic, ca4001 - ca7001 as non_hispanic,
+    round(ca7001 * 1.0 / ca4001 * 100, 1) as pct_hispanic,
+    areaname FROM latinos.tract_1960 INNER JOIN latinos.census_1960_tract_li ON latinos.tract_1960.gisjoin = latinos.census_1960_tract_li.gisjoin WHERE ca4001 != 0`);
+const Pop1960Style = new carto.style.CartoCSS(`
+  #layer { polygon-fill: #810f7c;
+           polygon-opacity: 1;
+           line-width: 0.5;
+           line-color: #b9b1b1;
+           line-opacity: 0.5;
+         }
+
+  #layer[ pct_hispanic <= 80] { polygon-fill: #8856a7; }
+  #layer[ pct_hispanic <= 40] { polygon-fill: #8c96c6; }
+  #layer [ pct_hispanic <= 20] { polygon-fill: #9ebcda; }
+  #layer [ pct_hispanic <= 10] { polygon-fill: #bfd3e6; }
+  #layer [ pct_hispanic <= 5] { polygon-fill: #edf8fb; }
+`);
+const populatedPlaces = new carto.layer.Layer(Pop1960, Pop1960Style);
+
+client.addLayer(populatedPlaces).then(() => {
+   console.log('Layers added');
+ })
+ .catch(cartoError => {
+   console.error(cartoError.message);
+ });;
+
+client.getLeafletLayer().addTo(map);
+
+
+
+      // code will go here!
+    </script>
+  </body>
+</html>
